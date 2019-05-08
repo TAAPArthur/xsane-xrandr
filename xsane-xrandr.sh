@@ -7,7 +7,7 @@
 #%
 #%Option
 #       --above,--below, --right-of, --left-of relative position of monitors
-#       --dmenu=<cmd.               the command to use to select text when in interactive mode
+#       --dmenu=<cmd>               the command to use to select text when in interactive mode
 #       --interactive, -i           interactivly choose args
 #       --debug                     enable debuggin (set -x)
 #       --auto                      automatically choose which monitor to use
@@ -39,7 +39,7 @@
 # END_OF_HEADER
 #================================================================
 #MAN generated with help2man -No mpxmanager.1 ./mpxmanager.sh
-set -e
+#set -e
 displayHelp(){
     SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
     SCRIPT_NAME="$(basename ${0})"
@@ -77,8 +77,14 @@ getOutputDims(){
 
 refresh(){
    size=$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*current (\w+)\s*x\s*(\w+).*$/\1x\2/p")
-   xrandr $dryrun --fb $(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*maximum (\w+)\s*x\s*(\w+).*$/\1x\2/p")
-   xrandr $dryrun --fb $size
+   size2=$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*maximum (\w+)\s*x\s*(\w+).*$/\1x\2/p")
+   #if [[ "$size" == "$size2" ]]; then
+   #    size2=$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*minimum (\w+)\s*x\s*(\w+).*$/\1x\2/p")
+   #fi
+
+   xrandr --nograb $dryrun --fb $size2
+   xrandr --nograb $dryrun --fb 1$size
+   xrandr --nograb $dryrun --fb $size
 }
 turnOffOutputs(){
     if [[ ! -z "${*}" ]]; then
@@ -160,11 +166,6 @@ createAdjMonitor(){
     name=$(echo "$1$relativePos$(uuidgen)" |sed "s/-//g")
     shift
     case "$relativePos" in
-        *)
-            ;;
-        pip)
-            xrandr --setmonitor $name $1/$5x$2/$6+$3+$4 "none";
-            ;;
         --below)
             y=$(($4+$2))
             xrandr --setmonitor $name $1/$5x$2/$6+$3+$y "none";
@@ -172,6 +173,12 @@ createAdjMonitor(){
         --right-of)
             x=$(($3+$1))
             xrandr --setmonitor $name $1/$5x$2/$6+$x+$4 "none";
+            ;;
+        pip)
+            xrandr --setmonitor $name $1/$5x$2/$6+$3+$4 "none";
+            ;;
+        *)
+            xrandr --setmonitor $name $1/$5x$2/$6+$3+$4 "none";
             ;;
     esac
     refresh
@@ -183,8 +190,13 @@ pip(){
     relativePos="pip"
     args=( $commands )
     # assuse arbitary monitor if nothing is specified
-    name=${args[0]}
+    if [[ "$interactive" ]]; then
+        name=$(getListOfOutputs |$dmenu)
+    else
+        name=${args[0]}
+    fi
     dims=( $(getOutputDims $name) )
+    echo $dims
     # X
     if [[ "${args[1]}" -lt 0 ]];then
         dims[2]=$((${dims[0]}+${args[1]}+${dims[2]}))
@@ -201,22 +213,21 @@ pip(){
     [ ! -z "${args[3]}" ] && [ "${args[3]}" -ne 0 ] && dims[0]=${args[3]}
     [ ! -z "${args[4]}" ] && [ "${args[4]}" -ne 0 ] && dims[1]=${args[4]}
 
+    echo $dims
     createAdjMonitor "$name" ${dims[@]}
 }
 addMonitor(){
-    if [[ "$interactive" ]]; then
-        commands=( $(getListOfOutputs |$dmenu) )
+    if [[ "$#" -eq 4 ]];then
+        name="_fake_monitor"
+    elif [[ "$#" -gt 4 ]];then
+        name=$0
+        shift
+    else
+        echo "not enough args"
+        exit 1;
     fi
-    name=${commands[0]}
-    dims=${commands[@]:1:4}
-    if [[ ! "$name" ]];then
-        echo "Missing output; aborting"
-        exit 1
-    fi
-    if [[ ! "$dims" ]]; then
-        dims=$(getOutputDims $name)
-    fi
-    createAdjMonitor "$name" $dims
+    dims=$@
+    createAdjMonitor "$name" $dims 1 1
 }
 splitMonitor(){
     if [[ "$interactive" ]]; then
@@ -333,41 +344,42 @@ while getopts "$optspec" optchar; do
     esac
 done
 shift $((OPTIND-1))
-case "$1" in
-    add-adj)
-        action="addMonitor"
-        ;;
-    add-monitor)
-        action="addMonitor"
-        ;;
-    set-primary)
-        action="setPrimary"
-        ;;
-    configure)
-        action="configureOutputs"
-        ;;
-    reset)
-        action="resetOutputs"
-        ;;
-    split-monitor)
-        action="splitMonitor"
-        ;;
-    pip)
-        action="pip"
-        ;;
-    list)
-        action="getAllOutputs"
-        ;;
-    clear)
-        action="clearAllFakeMonitors"
-        ;;
-   refresh)
-        action="refresh"
-        ;;
-    *)
-        action="configureOutputs"
-        ;;
-esac;
+if [[ -z "$1" ]]; then
+    action="configureOutputs"
+else
+    case "$1" in
+        add-monitor)
+            action="addMonitor"
+            ;;
+        set-primary)
+            action="setPrimary"
+            ;;
+        configure)
+            action="configureOutputs"
+            ;;
+        reset)
+            action="resetOutputs"
+            ;;
+        split-monitor)
+            action="splitMonitor"
+            ;;
+        pip)
+            action="pip"
+            ;;
+        list)
+            action="getAllOutputs"
+            ;;
+        clear)
+            action="clearAllFakeMonitors"
+            ;;
+       refresh)
+            action="refresh"
+            ;;
+        *)
+            displayHelp
+            ;;
+    esac;
+fi
 if [[ -z "$action" ]];then
     action="configureOutputs"
 else
@@ -375,4 +387,4 @@ else
 fi
 commands="$commands $@"
 args=( $commands )
-$action
+$action $commands

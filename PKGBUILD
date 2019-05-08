@@ -2,9 +2,9 @@
 
 
 pkgname='xsane-xrandr'
-pkgver='0.9.0'
+pkgver='0.9.1'
 _language='en-US'
-pkgrel=3
+pkgrel=4
 pkgdesc='Allows insance XRandr configurations'
 
 arch=('any')
