@@ -5,18 +5,24 @@ _xsanexrandrAutocomplete()   #  By convention, the function name
     # Pointer to current completion word.
     # By convention, it's named "cur" but this isn't strictly necessary.
 
-    options="--above --below --right-of --left-of --dmenu --interactive -i --debug --auto --outputs"
-    actions="add-monitor set-primary reset pip list clear refresh split-monitor configure"
-    general=" --dryrun --help -h --version -v"
+    options=" --dmenu --interactive -i -t --target --debug --auto -a --outputs --dryrun --help -h --version -v"
+    addMonitorOptions="--above --below --right-of --left-of --inside-of"
+    actions="add-monitor clear configure dup get-monitor-dims list pip refresh set-primary split-monitor"
 
     COMPREPLY=() # Array variable storing the possible completions.
     cur=${COMP_WORDS[COMP_CWORD]}
     last=${COMP_WORDS[COMP_CWORD-1]}
 
-    if [[ ! "$last" || "$last" == "--*" ]]; then
-        COMPREPLY=( $( compgen -W "$options $actions $general --" -- $cur ) )
+    if [[ COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=( $( compgen -W "$options $actions" -- $cur ) )
+    elif [[ "$last" == "add-monitor" ]]; then
+        COMPREPLY=( $( compgen -W "$addMonitorOptions " -- $cur ) )
+    elif [[ "$last" == "--dmenu" ]]; then
+        COMPREPLY=( $( compgen -W "dmenu rofi " -- $cur ) )
+    elif [[ "$last" == "--outputs" || "$last" == "-t" || "$last" == "--target" ]]; then
+        COMPREPLY=( $( compgen -W "$(xrandr -q |grep connected |cut -d' ' -f1) " -- $cur ) )
     else
-        COMPREPLY=( $( compgen -W "$actions $general --" -- $cur ) )
+        COMPREPLY=( $( compgen -W "$actions " -- $cur ) )
     fi
     return 0
 }
