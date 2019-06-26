@@ -2,14 +2,15 @@
 
 
 pkgname='xsane-xrandr'
-pkgver='0.9.1'
+pkgver='1.0.0'
 _language='en-US'
-pkgrel=4
-pkgdesc='Allows insance XRandr configurations'
+pkgrel=0
+pkgdesc='Allows insane XRandr configurations'
 
 arch=('any')
 license=('MIT')
-depends=('xorg-xrandr' 'python')
+depends=('xorg-xrandr' )
+optdepends=('python3')
 makedepends=('git')
 md5sums=('SKIP')
 
