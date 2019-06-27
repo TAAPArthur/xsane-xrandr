@@ -99,11 +99,26 @@ splitMonitor(){
     checkDims ${name[3]}-0 0 0 $((dims[2])) $((dims[3]/4*3))
     checkDims ${name[3]}-1 0 $((dims[3]/4)) $((dims[2])) $((dims[3]/4*3))
 }
+getMost(){
+    action="add-monitor"
+    name=( base left right top bottom)
+    $cmd -a --name ${name[0]} $action 0 0 0 0
+    $cmd --name ${name[1]} -t ${name[0]} $action --left-of 0 0 0 0
+    $cmd --name ${name[2]} $action --right-of ${name[0]} 0 0 0 0
+    $cmd --name ${name[3]} $action --above ${name[0]} 0 0 0 0
+    $cmd --name ${name[4]} $action --below ${name[0]} 0 0 0 0
+    [ "$($cmd get-left-most)" == left ]
+    [ "$($cmd get-right-most)" == right ]
+    [ "$($cmd get-top-most)" == top ]
+    [ "$($cmd get-bottom-most)" == bottom ]
+    clearAll
+}
 test(){
     echo Testing $1
     $1
 }
 test addMonitor
+test getMost
 test configure
 test dup
 test list

@@ -7,7 +7,7 @@ _xsanexrandrAutocomplete()   #  By convention, the function name
 
     options=" --dmenu --interactive -i -t --target --debug --auto -a --outputs --dryrun --help -h --version -v"
     addMonitorOptions="--above --below --right-of --left-of --inside-of"
-    actions="add-monitor clear configure dup get-monitor-dims list pip refresh set-primary split-monitor"
+    actions="add-monitor clear configure dup get-monitor-dims list pip refresh set-primary split-monitor get-left-most get-right-most get-top-most get-bottom-most"
 
     COMPREPLY=() # Array variable storing the possible completions.
     cur=${COMP_WORDS[COMP_CWORD]}

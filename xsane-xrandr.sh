@@ -91,6 +91,15 @@ getOutputDims(){
 getMonitorDims(){
     (export D="[[:digit:]]"; xrandr --listmonitors |grep  -E " +?$1 " | sed -E -n "s|.* ($D+)+/($D+)x($D+)/($D+)\+($D+)\+($D+)|\5 \6 \1 \3 \2 \4|p")
 }
+getEdgeMonitor(){
+    declare -A arr
+    arr=( [get-left-most]=1 [get-top-most]=2 [get-right-most]=3 [get-bottom-most]=4 )
+    sortArgs=
+    index=${arr[$1]}
+    [ "$index" -gt 2 ] && sortArgs="-r"
+    (export D="-?[[:digit:]]"; xrandr --listmonitors  | sed -E -n "s|.* \+?(\S+) ($D+)+/$D+x($D+)/$D+\+($D+)\+($D+)|\4 \5 \$((\2+\4)) \$((\3+\5)) \1 |p") |
+        xargs -I{} bash -c 'echo  {}' |cut -d" " -f $index,5 |sort -n $sortArgs|head -n1 |cut -d' ' -f 2
+}
 getArbitaryOutput(){
     getListOfOutputs |head -n1
 }
@@ -199,7 +208,7 @@ dup(){
 #Transforms the arguments to be relative towards the monitor $target
 getRelativeDims(){
     dims=($*)
-    if [[ "$relativePos" ]]; then
+    if [[ "$relativePos" || ! -z "$target" ]]; then
         checkTarget
         refDims=($(getMonitorDims $target))
         if [[ "${refDims[*]}" ]]; then
@@ -227,10 +236,6 @@ getRelativeDims(){
                     else
                         dims[0]=$((dims[0]+refDims[0]))
                     fi
-                    ;;
-                *)
-                    check "" "Unknown relative position $relativePos"
-
                     ;;
             esac
             [ ${dims[3]} -eq 0 ] && dims[3]=${refDims[3]}
@@ -410,6 +415,12 @@ else
             ;;
        refresh)
             action="refresh"
+            ;;
+        get-right-most);&
+        get-left-most);&
+        get-top-most);&
+        get-bottom-most)
+            action="getEdgeMonitor $1";
             ;;
         *)
             echo "Unknown option $1" >&2
