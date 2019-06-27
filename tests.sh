@@ -6,10 +6,10 @@ cmd="./xsane-xrandr.sh "
 
 checkDims(){
     arr=("$1")
-    for i in {2..7}; do 
+    for i in {2..7}; do
         if [[ "${!i}" -eq -1 || -z ${!i} ]]; then
             arr+=("\d+")
-        else 
+        else
             arr+=(${!i})
         fi
     done
@@ -29,15 +29,15 @@ clearAll(){
 addMonitor(){
     action="add-monitor"
     name=( add1 add2 add3 add4 add5)
-    $cmd --name ${name[0]} $action 0 0 100 100 
+    $cmd --name ${name[0]} $action 0 0 100 100
     checkDims ${name[0]} 0 0 100 100
-    $cmd --name ${name[1]} $action --right-of ${name[0]} 0 0 100 100 
+    $cmd --name ${name[1]} $action --right-of ${name[0]} 0 0 100 100
     checkDims ${name[1]} 100 0 100 100
-    $cmd --name ${name[2]} $action --below ${name[0]} 0 0 0 0 
+    $cmd --name ${name[2]} $action --below ${name[0]} 0 0 0 0
     checkDims ${name[2]} 0 100 100 100
-    $cmd --name ${name[3]} $action --above ${name[0]} 0 0 100 100 
+    $cmd --name ${name[3]} $action --above ${name[0]} 0 0 100 100
     checkDims ${name[3]} 0 -100 100 100
-    $cmd --name ${name[4]} -t ${name[0]} $action --left-of 0 0 0 0 
+    $cmd --name ${name[4]} -t ${name[0]} $action --left-of 0 0 0 0
     checkDims ${name[4]} -100 0 100 100
     clearAll
 }
@@ -69,9 +69,9 @@ other(){
 pip(){
     action="pip"
     name=( pip1 pip2 pip3 pip4 pip5)
-    $cmd --name ${name[0]} $action 0 0 100 100 
+    $cmd --name ${name[0]} $action 0 0 100 100
     checkDims ${name[0]} 0 0 100 100
-    $cmd --name ${name[1]} -t ${name[0]} $action -1 -4 10 10 
+    $cmd --name ${name[1]} -t ${name[0]} $action -1 -4 10 10
     checkDims ${name[1]} 99 96 10 10
     clearAll
 }

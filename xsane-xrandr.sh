@@ -145,7 +145,7 @@ mirror(){
     arr=( $outputs )
     command="xrandr $dryrun --output $1"
     for out in ${arr[*]}; do
-        if [[ "$out" != "$1" ]]; then 
+        if [[ "$out" != "$1" ]]; then
             command="$command --output $out --same-as $1 $2"
         fi
     done
@@ -202,7 +202,7 @@ getRelativeDims(){
     if [[ "$relativePos" ]]; then
         checkTarget
         refDims=($(getMonitorDims $target))
-        if [[ "${refDims[*]}" ]]; then 
+        if [[ "${refDims[*]}" ]]; then
             case "$relativePos" in
                 --above)
                     dims[1]=$((dims[1]-refDims[3]))
@@ -293,7 +293,7 @@ splitMonitor(){
         dims[index+2]=$((dims[index+2]/$num))
     else
         dims[index+2]=$((dims[index+2]*$3/100))
-    fi 
+    fi
     step=$(((S-dims[index+2]*num)/(num-1)+dims[index+2]))
     for ((i=0; i < num ; i++)); do
         [[ "$i" -eq 0 && "$replace" -eq 1 ]] &&  monitorTarget=$target || monitorTarget="none"
@@ -302,7 +302,7 @@ splitMonitor(){
     done
     refresh
 }
-    
+
 outputs=$(xrandr -q|grep ' connected' |cut -d ' ' -f 1)
 relativePos=""
 target=
@@ -366,7 +366,7 @@ else
     case "$1" in
         add-monitor)
             action="addMonitor"
-            case "$2" in 
+            case "$2" in
                 --above);&
                 --below);&
                 --inside-of);&
