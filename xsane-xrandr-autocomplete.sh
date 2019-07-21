@@ -1,4 +1,10 @@
 #!/bin/bash
+
+getIntersection(){
+    a1=( $1 )
+    a2=( $2 )
+    comm -12 <(for X in "${a1[@]}"; do echo "${X}"; done|sort)  <(for X in "${a2[@]}"; do echo "${X}"; done|sort)
+}
 _xsanexrandrAutocomplete()   #  By convention, the function name
 {                 #+ starts with an underscore.
     local cur
@@ -19,9 +25,9 @@ _xsanexrandrAutocomplete()   #  By convention, the function name
         COMPREPLY=( $( compgen -W "$addMonitorOptions " -- $cur ) )
     elif [[ "$last" == "--dmenu" ]]; then
         COMPREPLY=( $( compgen -W "dmenu rofi " -- $cur ) )
-    elif [[ "$last" == "--outputs" || "$last" == "-t" || "$last" == "--target" ]]; then
+    elif [[ "$last" == "--outputs" || "$last" == "-t" || "$last" == "--target" || "$last" == "configure" || "$last" == "dup" ]]; then
         COMPREPLY=( $( compgen -W "$(xrandr -q |grep connected |cut -d' ' -f1) " -- $cur ) )
-    else
+    elif [[ -z $(getIntersection "${COMP_WORDS[*]}" "$actions") ]]; then
         COMPREPLY=( $( compgen -W "$actions " -- $cur ) )
     fi
     return 0
