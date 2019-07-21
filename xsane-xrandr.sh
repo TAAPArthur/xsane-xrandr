@@ -158,6 +158,7 @@ mirror(){
             command="$command --output $out --same-as $1 $2"
         fi
     done
+    $command
 }
 applyOutputConfiguration(){
     mirror=0
