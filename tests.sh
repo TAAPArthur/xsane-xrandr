@@ -70,9 +70,6 @@ list(){
     outputs="A B C"
     echo $($cmd --outputs "$outputs" $action) |grep -q "$outputs"
 }
-other(){
-    $cmd refresh
-}
 pip(){
     action="pip"
     name=( pip1 pip2 pip3 pip4 pip5)
@@ -130,7 +127,6 @@ test configure
 test dup
 test list
 test pip
-test other
 test setPrimary
 test splitMonitor
 echo "success"

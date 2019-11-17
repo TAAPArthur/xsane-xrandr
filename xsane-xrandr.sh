@@ -28,7 +28,6 @@
 #%      get-monitor-dims            Gets the space separated list of monitor dims
 #%      list                        list all possible outputs
 #%      pip DIMS                    alias for add-monitor --inside-of . The target flag needs to be set
-#%      refresh                     refresh xrandr
 #%      set-primary                 sets output to be the primary monitor
 #%      split-monitor [W|H] [, num [,slice-dims] ]  The first argument dictates the dimension to split on. Upper case means to replace the existing monitor. Num is the number of resulting pieces (default 2). Slice-dims set the percent of the total width/height each slice gets (Default is they all get equal slices)
 #%
@@ -121,16 +120,6 @@ clearFakeMonitors(){
 }
 clearAllFakeMonitors(){
     clearFakeMonitors
-    refresh
-}
-refresh(){
-   size=$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*current (\w+)\s*x\s*(\w+).*$/\1x\2/p")
-   size2=$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*maximum (\w+)\s*x\s*(\w+).*$/\1x\2/p")
-   if [[ "$size" == "$size2" ]]; then
-       size2=$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*minimum (\w+)\s*x\s*(\w+).*$/\1x\2/p")
-   fi
-   xrandr --nograb $dryrun --fb $size2
-   xrandr --nograb $dryrun --fb $size
 }
 turnOffOutputs(){
     if [[ ! -z "${*}" ]]; then
@@ -271,7 +260,6 @@ addMonitor(){
         exit 1;
     fi
     createMonitor "${name:-fake_monitor_$(echo "$1$relativePos$(uuidgen)" |sed "s/-//g")}" $(getRelativeDims "${dims[*]}") 1 1
-    refresh
 }
 ##########################################################################
 
@@ -309,7 +297,6 @@ splitMonitor(){
         createMonitor "$name-$i" ${dims[*]} $monitorTarget
         dims[$index]=$((${dims[index]}+step))
     done
-    refresh
 }
 
 outputs=$(xrandr -q|grep ' connected' |cut -d ' ' -f 1)
@@ -416,9 +403,6 @@ else
             ;;
         split-monitor)
             action="splitMonitor"
-            ;;
-       refresh)
-            action="refresh"
             ;;
         get-right-most);&
         get-left-most);&
