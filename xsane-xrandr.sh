@@ -89,7 +89,11 @@ getOutputDims(){
     (export D="[[:digit:]]"; xrandr -q|grep  "$1 connected .* " | sed -E -n "s/.* ($D+)+x($D+)\+($D+)\+($D+) (\([^\)]*\))? ?($D+)mm x ($D+)mm$/\6 \7 \1 \2 \3 \4/p")
 }
 getMonitorDims(){
-    (export D="[[:digit:]]"; xrandr --listmonitors |grep  -E " +?$1 " | sed -E -n "s|.* ($D+)+/($D+)x($D+)/($D+)\+($D+)\+($D+)|\5 \6 \1 \3 \2 \4|p")
+    if [[ -z "$target" ]]; then
+        echo 0 0 $(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*current (\w+)\s*x\s*(\w+).*$/\1 \2/p") 1 1
+   else
+        (export D="[[:digit:]]"; xrandr --listmonitors |grep  -E " +?$1 " | sed -E -n "s|.* ($D+)+/($D+)x($D+)/($D+)\+($D+)\+($D+)|\5 \6 \1 \3 \2 \4|p")
+    fi
 }
 getEdgeMonitor(){
     declare -A arr
@@ -209,39 +213,38 @@ dup(){
 #Transforms the arguments to be relative towards the monitor $target
 getRelativeDims(){
     dims=($*)
-    if [[ "$relativePos" || ! -z "$target" ]]; then
-        checkTarget
-        refDims=($(getMonitorDims $target))
-        if [[ "${refDims[*]}" ]]; then
-            case "$relativePos" in
-                --above)
-                    dims[1]=$((dims[1]-refDims[3]))
-                    ;;
-                --below)
-                    dims[1]=$((dims[1]+refDims[3]))
-                    ;;
-                --right-of)
-                    dims[0]=$((dims[0]+refDims[2]))
-                    ;;
-                --left-of)
-                    dims[0]=$((dims[0]-refDims[2]))
-                    ;;
-                --inside-of)
-                    if [[ "${dims[1]}" -lt 0 ]];then
-                        dims[1]=$((dims[1]+refDims[1]+refDims[3]))
-                    else
-                        dims[1]=$((dims[1]+refDims[1]))
-                    fi
-                    if [[ "${dims[0]}" -lt 0 ]];then
-                        dims[0]=$((dims[0]+refDims[0]+refDims[2]))
-                    else
-                        dims[0]=$((dims[0]+refDims[0]))
-                    fi
-                    ;;
-            esac
-            [ ${dims[3]} -eq 0 ] && dims[3]=${refDims[3]}
-            [ ${dims[2]} -eq 0 ] && dims[2]=${refDims[2]}
-        fi
+    refDims=($(getMonitorDims $target))
+    if [[ "${refDims[*]}" ]]; then
+        case "$relativePos" in
+            --above)
+                dims[1]=$((dims[1]-refDims[3]))
+                ;;
+            --below)
+                dims[1]=$((dims[1]+refDims[3]))
+                ;;
+            --right-of)
+                dims[0]=$((dims[0]+refDims[2]))
+                ;;
+            --left-of)
+                dims[0]=$((dims[0]-refDims[2]))
+                ;;
+            --inside-of)
+                ;&
+                *)
+                if [[ "${dims[1]}" -lt 0 ]];then
+                    dims[1]=$((dims[1]+refDims[1]+refDims[3]))
+                else
+                    dims[1]=$((dims[1]+refDims[1]))
+                fi
+                if [[ "${dims[0]}" -lt 0 ]];then
+                    dims[0]=$((dims[0]+refDims[0]+refDims[2]))
+                else
+                    dims[0]=$((dims[0]+refDims[0]))
+                fi
+                ;;
+        esac
+        [ ${dims[3]} -eq 0 ] && dims[3]=${refDims[3]}
+        [ ${dims[2]} -eq 0 ] && dims[2]=${refDims[2]}
     fi
     echo ${dims[*]}
 }

@@ -28,7 +28,7 @@ clearAll(){
 }
 addMonitor(){
     action="add-monitor"
-    name=( add1 add2 add3 add4 add5)
+    name=( add1 add2 add3 add4 add5 add6 add7 add8 )
     $cmd --name ${name[0]} $action 0 0 100 100
     checkDims ${name[0]} 0 0 100 100
     $cmd --name ${name[1]} $action --right-of ${name[0]} 0 0 100 100
@@ -39,6 +39,13 @@ addMonitor(){
     checkDims ${name[3]} 0 -100 100 100
     $cmd --name ${name[4]} -t ${name[0]} $action --left-of 0 0 0 0
     checkDims ${name[4]} -100 0 100 100
+    $cmd --name ${name[5]} -t ${name[0]} $action -10 0 10 20
+    checkDims ${name[5]} 90 0 10 20
+    $cmd --name ${name[6]} -t ${name[1]} $action --inside-of 10 -10 10 20
+    checkDims ${name[6]} 110 90 10 20
+    size=( $(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*current (\w+)\s*x\s*(\w+).*$/\1 \2/p") )
+    $cmd --name ${name[7]} $action -10 -20 10 10
+    checkDims ${name[7]} $((size[0]-10)) $((size[1]-20)) 10 10
     clearAll
 }
 configure(){
