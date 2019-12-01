@@ -1,16 +1,14 @@
-# Maintainer: Arthur Williams <taaparthur@gmail.com>
-
+# Maintainer: Arthur Williams <taaparthur at gmail dot com>
 
 pkgname='xsane-xrandr'
-pkgver='1.0.0'
-_language='en-US'
+pkgver='1.0'
 pkgrel=0
-pkgdesc='Allows insane XRandr configurations'
-
+pkgdesc='Utility script to create and manage user defined monitors'
+url="https://github.com/TAAPArthur/xsane-xrandr"
 arch=('any')
 license=('MIT')
 depends=('xorg-xrandr' )
-optdepends=('python3')
+optdepends=('python3: for the configure command')
 makedepends=('git')
 md5sums=('SKIP')
 
