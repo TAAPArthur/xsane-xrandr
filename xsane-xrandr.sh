@@ -136,7 +136,7 @@ turnOffOutputs(){
 getOutputConfigurations(){
     cat << EOF |python
 import itertools
-outputs='$outputs'.split()
+outputs="$outputs".split()
 nonMirror=itertools.chain.from_iterable(itertools.permutations(outputs,x) for x in range(1,len(outputs)+1))
 options=itertools.chain(nonMirror,map(lambda x:("--mirror: "+x,),outputs),map(lambda x:("--scaled-mirror: "+x,),outputs))
 for option in options:
@@ -155,12 +155,12 @@ mirror(){
 }
 applyOutputConfiguration(){
     mirror=0
-    if [[ "$1" == "--scale-mirror" ]]; then
+    if [[ "$1" =~ --scaled-mirror* ]]; then
         res=$(xrandr -q| sed -n "s/^$2.* connected \?\w* \([[:digit:]]\+x[[:digit:]]\+\).*$/\1/p")
         check "$res" "Could not get resolution of $2"
         mirror $2 " --scale-from $res "
         return 0
-    elif [[ "$1" == "--mirror" ]]; then
+    elif [[ "$1" =~ --mirror* ]]; then
         mirror $2 ""
         return 0
     else
@@ -299,7 +299,7 @@ splitMonitor(){
     done
 }
 
-outputs=$(xrandr -q|grep ' connected' |cut -d ' ' -f 1)
+outputs="$(echo $(xrandr -q|grep ' connected' |cut -d ' ' -f 1))"
 relativePos=""
 target=
 name=
