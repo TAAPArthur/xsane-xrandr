@@ -28,6 +28,7 @@
 #%      get-monitor-dims            Gets the space separated list of monitor dims
 #%      list                        list all possible outputs
 #%      pip DIMS                    alias for add-monitor --inside-of . The target flag needs to be set
+#%      rotate [C|CC]               Rotate target either clockwise or counter clockwise. If no argument is specified, the current rotation is printed
 #%      set-primary                 sets output to be the primary monitor
 #%      split-monitor [W|H] [, num [,slice-dims] ]  The first argument dictates the dimension to split on. Upper case means to replace the existing monitor. Num is the number of resulting pieces (default 2). Slice-dims set the percent of the total width/height each slice gets (Default is they all get equal slices)
 #%
@@ -263,6 +264,40 @@ addMonitor(){
 }
 ##########################################################################
 
+getRotation(){
+    if [[ "$interactive" ]]; then
+        target=$(getListOfOutputs |$dmenu)
+    fi
+    checkTarget
+    xrandr --verbose|grep -Po "$target.*\K(normal|right|left|inverted) .*\(" | cut -d" " -f1
+}
+rotate(){
+    rotation=$(getRotation)
+    if [[ -z "$1" ]]; then
+        echo $rotation
+        return
+    fi
+    #in clockwise order
+    rotations=( normal right inverted left)
+    ROT_LEN=${#rotations[@]}
+    for i in "${!rotations[@]}"; do
+        if [[ "${rotations[$i]}" = "$rotation" ]]; then
+            break
+        fi
+    done
+    if [[ "$1" =~ (CC|cc) ]]; then
+        i=$(((i-1+ROT_LEN)%ROT_LEN))
+    elif [[ "$1" =~ (C|c) ]]; then
+        echo "clockwise"
+        i=$(((i+1)%ROT_LEN))
+    else
+        echo "$1 is not a valid option"
+        exit 1
+    fi
+    xrandr $dryrun --output $target --rotate ${rotations[$i]}
+    echo ${rotations[$i]}
+
+}
 splitMonitor(){
     if [[ "$interactive" ]]; then
         result=$(getListOfOutputs | xargs -I{} echo -e "{} W\n {} H" |$dmenu)
@@ -397,6 +432,9 @@ else
             checkTarget
             relativePos="--inside-of"
             action="addMonitor"
+            ;;
+        rotate)
+            action="rotate"
             ;;
         set-primary)
             action="setPrimary"
