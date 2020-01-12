@@ -66,7 +66,7 @@ check(){
     fi
 }
 checkTarget(){
-    check $target "No target specified"
+    check "$target" "No target specified"
 }
 
 getDiff(){
@@ -85,7 +85,7 @@ getListOfOutputs(){
     echo $outputs | sed "s/ /\n/g"
 }
 getOutputDims(){
-    (export D="[[:digit:]]"; xrandr -q|grep  "$1 connected .* " | sed -E -n "s/.* ($D+)+x($D+)\+($D+)\+($D+) (\([^\)]*\))? ?($D+)mm x ($D+)mm$/\6 \7 \1 \2 \3 \4/p")
+    (export D="[[:digit:]]"; xrandr -q|grep  "$1 connected .* " | sed -E -n "s/.* ($D+)+x($D+)\+($D+)\+($D+) (\([^\)]*\))? ?($D+)mm x ($D+)mm$/\3 \4 \1 \2 \6 \7 /p")
 }
 getMonitorDims(){
     if [[ -z "$target" ]]; then
@@ -293,7 +293,7 @@ splitMonitor(){
     fi
     step=$(((S-dims[index+2]*num)/(num-1)+dims[index+2]))
     for ((i=0; i < num ; i++)); do
-        [[ "$i" -eq 0 && "$replace" -eq 1 ]] &&  monitorTarget=$target || monitorTarget="none"
+        [[ "$i" -eq 0 && "$replace" -eq 1 ]] && monitorTarget=$target || monitorTarget="none"
         createMonitor "$name-$i" ${dims[*]} $monitorTarget
         dims[$index]=$((${dims[index]}+step))
     done
