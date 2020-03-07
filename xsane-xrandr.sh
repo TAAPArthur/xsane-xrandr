@@ -285,17 +285,15 @@ rotate(){
             break
         fi
     done
+    newRotation=$1
     if [[ "$1" =~ (CC|cc) ]]; then
-        i=$(((i-1+ROT_LEN)%ROT_LEN))
+        newRotation=${rotations[$(((i-1+ROT_LEN)%ROT_LEN))]}
     elif [[ "$1" =~ (C|c) ]]; then
         echo "clockwise"
-        i=$(((i+1)%ROT_LEN))
-    else
-        echo "$1 is not a valid option"
-        exit 1
+        newRotation=${rotations[$(((i+1)%ROT_LEN))]}
     fi
-    xrandr $dryrun --output $target --rotate ${rotations[$i]}
-    echo ${rotations[$i]}
+    xrandr $dryrun --output $target --rotate $newRotation
+    echo $newRotation
 
 }
 splitMonitor(){
