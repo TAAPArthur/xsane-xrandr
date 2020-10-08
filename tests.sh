@@ -117,6 +117,40 @@ getMost(){
     [ "$($cmd get-bottom-most)" == bottom ]
     clearAll
 }
+getRotation() {
+    xrandr --verbose|grep -Po "$target.*\K(normal|right|left|inverted) .*\(" | cut -d" " -f1
+}
+rotateMonitor() {
+    action="rotate"
+    $cmd -a $action left
+    [ left == $(getRotation) ]
+    $cmd -a $action right
+    [ right == $(getRotation) ]
+    $cmd -a $action inverted
+    [ inverted == $(getRotation) ]
+    $cmd -a $action normal
+    [ normal == $(getRotation) ]
+
+    $cmd -a $action CC
+    getRotation
+    [ left == $(getRotation) ]
+    $cmd -a $action CC
+    getRotation
+    [ inverted == $(getRotation) ]
+    $cmd -a $action CC
+    [ right == $(getRotation) ]
+    $cmd -a $action CC
+    [ normal == $(getRotation) ]
+    $cmd -a $action C
+    [ right == $(getRotation) ]
+    $cmd -a $action C
+    [ inverted == $(getRotation) ]
+    $cmd -a $action C
+    [ left == $(getRotation) ]
+    $cmd -a $action C
+    [ normal == $(getRotation) ]
+}
+
 test(){
     echo Testing $1
     $1
@@ -127,6 +161,7 @@ test configure
 test dup
 test list
 test pip
+test rotateMonitor
 test setPrimary
 test splitMonitor
 echo "success"

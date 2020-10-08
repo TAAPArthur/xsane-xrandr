@@ -280,20 +280,28 @@ rotate(){
     #in clockwise order
     rotations=( normal right inverted left)
     ROT_LEN=${#rotations[@]}
+
     for i in "${!rotations[@]}"; do
         if [[ "${rotations[$i]}" = "$rotation" ]]; then
             break
         fi
     done
-    newRotation=$1
     if [[ "$1" =~ (CC|cc) ]]; then
-        newRotation=${rotations[$(((i-1+ROT_LEN)%ROT_LEN))]}
+        i=$(((i-1+ROT_LEN)%ROT_LEN))
     elif [[ "$1" =~ (C|c) ]]; then
         echo "clockwise"
-        newRotation=${rotations[$(((i+1)%ROT_LEN))]}
+        i=$(((i+1)%ROT_LEN))
+    else
+        echo $rotation
+        for i in "${!rotations[@]}"; do
+            if [[ "${rotations[$i]}" = "$1" ]]; then
+                found=1
+                break
+            fi
+        done
+        [ "$found" -eq 1 ]
     fi
-    xrandr $dryrun --output $target --rotate $newRotation
-    echo $newRotation
+    xrandr $dryrun --output $target --rotate ${rotations[$i]}
 
 }
 splitMonitor(){
