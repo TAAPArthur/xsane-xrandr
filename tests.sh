@@ -52,7 +52,7 @@ configure(){
     action="configure"
     dmenu="eval (cat ;exit 1) 1>&2"
     outputs="A B C"
-    [ "$(($cmd --outputs "$outputs" -i --dmenu "$dmenu" $action ) 2>&1 | wc -l)" -eq 21 ]
+    [ "$( ($cmd --outputs "$outputs" -i --dmenu "$dmenu" $action ) 2>&1 | wc -l)" -eq 21 ]
     $cmd --dryrun --outputs "$outputs" --debug $action A B 2>&1 |grep -q -- "--output B --right-of A"
     clearAll
 }
@@ -73,7 +73,7 @@ list(){
 pip(){
     action="pip"
     name=( pip1 pip2 pip3 pip4 pip5)
-    $cmd --name ${name[0]} $action 0 0 100 100
+    $cmd --name ${name[0]} -a $action 0 0 100 100
     checkDims ${name[0]} 0 0 100 100
     $cmd --name ${name[1]} -t ${name[0]} $action -1 -4 10 10
     checkDims ${name[1]} 99 96 10 10
@@ -155,10 +155,14 @@ test(){
     echo Testing $1
     $1
 }
+
+
+trap "clearAll" EXIT
+clearAll
 test addMonitor
-test getMost
 test configure
 test dup
+test getMost
 test list
 test pip
 test rotateMonitor
