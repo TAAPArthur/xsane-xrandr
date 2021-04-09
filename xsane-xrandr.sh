@@ -1,4 +1,5 @@
-#! /bin/bash
+#! /bin/sh
+# shellcheck disable=SC2086
 #================================================================
 # HEADER
 #================================================================
@@ -47,12 +48,11 @@
 #MAN generated with help2man -No xsane-xrandr.1 ./xsane-xrandr.sh
 
 set -e
-set -o pipefail
 
 displayHelp(){
-    SCRIPT_HEADSIZE=$(head -200 ${0} |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
-    SCRIPT_NAME="$(basename ${0})"
-    head -${SCRIPT_HEADSIZE:-99} ${0} | grep -e "^#[%+]" | sed -e "s/^#[%+-]//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ;
+    SCRIPT_HEADSIZE=$(head -200 "$0" |grep -n "^# END_OF_HEADER" | cut -f1 -d:)
+    SCRIPT_NAME="$(basename "$0")"
+    head "-${SCRIPT_HEADSIZE:-99}" "$0" | grep -e "^#[%+]" | sed -e "s/^#[%+-]//g" -e "s/\${SCRIPT_NAME}/${SCRIPT_NAME}/g" ;
 }
 version(){
     echo "1.0.0"
@@ -70,67 +70,66 @@ checkTarget(){
     check "$target" "No target specified"
 }
 
-getDiff(){
-    list1=( $1 )
-    list2=( $2 )
-    l2=" ${list2[*]} "                    # add framing blanks
-    for item in ${list1[@]}; do
-      if [[ ! $l2 =~ " $item " ]] ; then    # use $item as regexp
-        result+=($item)
-      fi
-    done
-    echo  ${result[@]}
-}
-
 getListOfOutputs(){
-    echo $outputs | sed "s/ /\n/g"
+    echo "$outputs" | sed "s/ /\n/g"
 }
 getOutputDims(){
-    (export D="[[:digit:]]"; xrandr -q|grep  "$1 connected .* " | sed -E -n "s/.* ($D+)+x($D+)\+($D+)\+($D+) (\([^\)]*\))? ?($D+)mm x ($D+)mm$/\3 \4 \1 \2 \6 \7 /p")
+    xrandr -q|grep  "$1 connected .* " | sed -E -n "s/.* ([0-9]+)+x([0-9]+)\+([0-9]+)\+([0-9]+) (\([^\)]*\))? ?([0-9]+)mm x ([0-9]+)mm$/\3 \4 \1 \2 \6 \7 /p"
 }
 getMonitorDims(){
-    if [[ -z "$target" ]]; then
-        echo 0 0 $(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*current (\w+)\s*x\s*(\w+).*$/\1 \2/p") 1 1
+    if [ -z "$target" ]; then
+        echo 0 0 "$(xrandr -q |grep "Screen $SCREEN" |head -n1 |sed -E -n "s/.*current (\w+)\s*x\s*(\w+).*$/\1 \2/p")" 1 1
    else
-        (export D="[[:digit:]]"; xrandr --listmonitors |grep  -E " +?$1 " | sed -E -n "s|.* ($D+)+/($D+)x($D+)/($D+)\+($D+)\+($D+)|\5 \6 \1 \3 \2 \4|p")
+        xrandr --listmonitors |grep  -E " +?$1 " | sed -E -n "s|.* ([0-9]+)+/([0-9]+)x([0-9]+)/([0-9]+)\+([0-9]+)\+([0-9]+)|\5 \6 \1 \3 \2 \4|p"
     fi
 }
 getEdgeMonitor(){
-    declare -A arr
-    arr=( [get-left-most]=1 [get-top-most]=2 [get-right-most]=3 [get-bottom-most]=4 )
+    case "$1" in
+        get-left-most)
+            index=1;;
+        get-top-most)
+            index=2;;
+        get-right-most)
+            index=3;;
+        get-bottom-most)
+            index=4;;
+    esac
     sortArgs=
-    index=${arr[$1]}
     [ "$index" -gt 2 ] && sortArgs="-r"
-    (export D="-?[[:digit:]]"; xrandr --listmonitors  | sed -E -n "s|.* \+?(\S+) ($D+)+/$D+x($D+)/$D+\+($D+)\+($D+)|\4 \5 \$((\2+\4)) \$((\3+\5)) \1 |p") |
-        xargs -I{} bash -c 'echo  {}' |cut -d" " -f $index,5 |sort -n $sortArgs|head -n1 |cut -d' ' -f 2
+
+    xrandr --listmonitors  | sed -E -n "s|.* \+?(\S+) ([0-9]+)+/[0-9]+x([0-9]+)/[0-9]+\+(-?[0-9]+)\+(-?[0-9]+)|\4 \5 \2 \3 \1 |p" |
+     awk '{print $1, $2, $1+$3, $2+4, $5}' | sort -n $sortArgs -k $index | head -n1 | awk '{print $5}'
 }
 getArbitaryOutput(){
     getListOfOutputs |head -n1
 }
 
 setPrimary(){
-    if [[ "$interactive" ]]; then
+    if [ "$interactive" -eq 1 ]; then
         target=$(getListOfOutputs|$dmenu)
     else
         checkTarget
     fi
-    xrandr --output $target --primary
+    xrandr --output "$target" --primary
 }
 clearFakeMonitors(){
-    xrandr $dryrun --listmonitors |grep "$1" | sed -E -n "s/^\s+\w: ([^ *+]+).*/\1/p" |xargs -I {} xrandr $dryrun --delmonitor {}
+    xrandr --listmonitors | sed -E -n "s/^\s+\w: ([^ *+]+).*/\1/p" |xargs -I {} xrandr $dryrun --delmonitor {}
 }
 clearAllFakeMonitors(){
     clearFakeMonitors
 }
-turnOffOutputs(){
-    if [[ ! -z "${*}" ]]; then
+turnOffOtherOutputs(){
+    file=$(mktemp)
+    getListOfOutputs > "$file"
+    echo "$1" | sort comm -23  "$file" - | {
         command="xrandr $dryrun "
-        for out in "$@"
-        do
+        while read -r output; do
             command="$command --output $out --off"
         done
         $command
-    fi
+
+    }
+    rm "$file"
 }
 
 ################################## configure function and helpers
@@ -145,10 +144,9 @@ for option in options:
 EOF
 }
 mirror(){
-    arr=( $outputs )
     command="xrandr $dryrun --output $1"
-    for out in ${arr[*]}; do
-        if [[ "$out" != "$1" ]]; then
+    for out in $outputs; do
+        if [ "$out" != "$1" ]; then
             command="$command --output $out --same-as $1 $2"
         fi
     done
@@ -156,24 +154,25 @@ mirror(){
 }
 applyOutputConfiguration(){
     mirror=0
-    if [[ "$1" =~ --scaled-mirror* ]]; then
-        res=$(xrandr -q| sed -n "s/^$2.* connected \?\w* \([[:digit:]]\+x[[:digit:]]\+\).*$/\1/p")
+    if [ "$1" = --scaled-mirror ]; then
+        res=$(xrandr -q| sed -n "s/^$2.* connected \?\w* \([0-9]\+x[0-9]\+\).*$/\1/p")
         check "$res" "Could not get resolution of $2"
-        mirror $2 " --scale-from $res "
+        mirror "$2" " --scale-from $res "
         return 0
-    elif [[ "$1" =~ --mirror* ]]; then
-        mirror $2 ""
+    elif [ "$1" = --mirror ]; then
+        mirror "$2" ""
         return 0
     else
-        turnOffOutputs $(getDiff "$*" "$outputs")
+        echo "$outputs"
+        turnOffOtherOutputs "$*"
     fi
     command="xrandr $dryrun "
 
     pos=""
     for out in "$@"
     do
-        if [[ $mirror -eq 1 ]];then
-            command="$command --output $out --same-as $1 $extra"
+        if [ $mirror -eq 1 ];then
+            command="$command --output $out --same-as $1"
         else
             command="$command --output $out $pos --auto"
             pos="--right-of $out"
@@ -182,7 +181,7 @@ applyOutputConfiguration(){
     $command
 }
 configureOutputs(){
-    if [[ "$interactive" ]]; then
+    if [ "$interactive" -eq 1 ]; then
         result=$(getOutputConfigurations|$dmenu)
     else
         result=$*
@@ -190,164 +189,175 @@ configureOutputs(){
     applyOutputConfiguration $result
 }
 dup(){
-    if [[ "$interactive" ]]; then
+    if [ "$interactive" -eq 1 ]; then
         target=$(getListOfOutputs |$dmenu)
     else
         checkTarget
     fi
-    applyOutputConfiguration "--scale-mirror" $target
+    applyOutputConfiguration "--scale-mirror" "$target"
 }
 #################################################################
 
 ################################################### Add monitor and helper methods
 #Transforms the arguments to be relative towards the monitor $target
 getRelativeDims(){
-    dims=($*)
-    refDims=($(getMonitorDims $target))
-    if [[ "${refDims[*]}" ]]; then
+    getMonitorDims "$target" | {
+        read -r refX refY refW refH _
+        x=$1
+        y=$2
+        w=$3
+        h=$4
         case "$relativePos" in
             --above)
-                dims[1]=$((dims[1]-refDims[3]))
+                y=$((y-refH))
                 ;;
             --below)
-                dims[1]=$((dims[1]+refDims[3]))
+                y=$((y+refH))
                 ;;
             --right-of)
-                dims[0]=$((dims[0]+refDims[2]))
+                x=$((x+refW))
                 ;;
             --left-of)
-                dims[0]=$((dims[0]-refDims[2]))
+                x=$((x-refW))
                 ;;
-            --inside-of)
-                ;&
-                *)
-                if [[ "${dims[1]}" -lt 0 ]];then
-                    dims[1]=$((dims[1]+refDims[1]+refDims[3]))
+            --inside-of|*)
+                if [ "$y" -lt 0 ];then
+                    y=$((y+refY+refH))
                 else
-                    dims[1]=$((dims[1]+refDims[1]))
+                    y=$((y+refY))
                 fi
-                if [[ "${dims[0]}" -lt 0 ]];then
-                    dims[0]=$((dims[0]+refDims[0]+refDims[2]))
+                if [ "$x" -lt 0 ];then
+                    x=$((x+refX+refW))
                 else
-                    dims[0]=$((dims[0]+refDims[0]))
+                    x=$((x+refX))
                 fi
                 ;;
         esac
-        [ ${dims[3]} -eq 0 ] && dims[3]=${refDims[3]}
-        [ ${dims[2]} -eq 0 ] && dims[2]=${refDims[2]}
-    fi
-    echo ${dims[*]}
+        [ "$w" -eq 0 ] && w=$refW
+        [ "$h" -eq 0 ] && h=$refH
+        echo "$x $y $w $h"
+    }
 }
 
 
 # name x,y,w,h, w_mm, h_mm
 createMonitor(){
     mName=$1
-    if xrandr --listmonitors | grep -E -q " +?$name "; then
-        mName=$name_$(date +%s%N | cut -b4-13)
-    fi
     shift
-    [ -z $7 ] && output="none" || output=$7
-    xrandr $dryrun --setmonitor $mName $3/$5x$4/$6+$1+$2 $output >>/dev/null
-}
-convertDimInput(){
-    echo $* | sed -E 's/([[:digit:]]+)x([[:digit:]]+)\+([[:digit:]]+)\+([[:digit:]]+)/\3 \4 \1 \2/g'
+    [ -z "$7" ] && output="none" || output=$7
+    xrandr $dryrun --setmonitor "$mName" "$3/$5x$4/$6+$1+$2" "$output" >>/dev/null
 }
 addMonitor(){
-    dims=($(convertDimInput $*))
-    if [[ "${#dims[@]}" -ne 4 ]];then
-        echo "Wrong number of arguments: $*"
-        displayHelp
-        exit 1;
-    fi
-    createMonitor "${name:-fake_monitor_$(echo "$1$relativePos$(uuidgen)" |sed "s/-//g")}" $(getRelativeDims "${dims[*]}") 1 1
+    echo "$@" | sed -E 's/([0-9]+)x([0-9]+)\+([0-9]+)\+([0-9]+)/\3 \4 \1 \2/g' | {
+        read -r x y w h
+        getRelativeDims "$x" "$y" "$w" "$h" | {
+            read -r x y w h
+            createMonitor "${name:-fake_monitor_$(echo "$1$relativePos$(uuidgen)" |sed "s/-//g")}" "$x" "$y" "$w" "$h" 1 1
+        }
+    }
 }
 ##########################################################################
 
 getRotation(){
-    if [[ "$interactive" ]]; then
+    if [ "$interactive" ]; then
         target=$(getListOfOutputs |$dmenu)
     fi
     checkTarget
-    xrandr --verbose|grep -Po "$target.*\K(normal|right|left|inverted) .*\(" | cut -d" " -f1
+    xrandr --verbose | grep -w "$target" | grep -w -Eo "(normal|right|left|inverted)" | head -n1
+}
+getTransformRotation(){
+
+    rotation=$1
+    transform=$2
+    #in clockwise order
+    set -- normal right inverted left
+
+    i=2
+    for r; do
+        if [ "$r" = "$rotation" ];then
+           break
+        fi
+        i=$((i+1))
+    done
+
+    set -- $4 "$@" $1
+
+    case "$transform" in
+        CC|cc)
+            i=$((i-1))
+            eval "echo \$$i"
+            ;;
+        C|c)
+            i=$((i+1))
+            eval "echo \$$i"
+            ;;
+        *)
+            echo $transform
+            ;;
+    esac
 }
 rotate(){
     rotation=$(getRotation)
-    if [[ -z "$1" ]]; then
-        echo $rotation
+
+    if [ -z "$1" ]; then
+        echo "$rotation"
         return
     fi
-    #in clockwise order
-    rotations=( normal right inverted left)
-    ROT_LEN=${#rotations[@]}
-
-    for i in "${!rotations[@]}"; do
-        if [[ "${rotations[$i]}" = "$rotation" ]]; then
-            break
-        fi
-    done
-    if [[ "$1" =~ (CC|cc) ]]; then
-        i=$(((i-1+ROT_LEN)%ROT_LEN))
-    elif [[ "$1" =~ (C|c) ]]; then
-        echo "clockwise"
-        i=$(((i+1)%ROT_LEN))
-    else
-        echo $rotation
-        for i in "${!rotations[@]}"; do
-            if [[ "${rotations[$i]}" = "$1" ]]; then
-                found=1
-                break
-            fi
-        done
-        [ "$found" -eq 1 ]
-    fi
-    xrandr $dryrun --output $target --rotate ${rotations[$i]}
+    newRotation=$(getTransformRotation "$rotation" "$1")
+    xrandr $dryrun --output "$target" --rotate "$newRotation"
 
 }
 splitMonitor(){
-    if [[ "$interactive" ]]; then
+    if [ "$interactive" ]; then
         result=$(getListOfOutputs | xargs -I{} echo -e "{} W\n {} H" |$dmenu)
     else
-        # format: output, H or W, [, num [, slice-dim]]
+        # format: output, H or W, [, num [, slice-dim]
         result=$*
     fi
-    check $result "Arguments needed; aborting"
+    check "$result" "Arguments needed; aborting"
     checkTarget
     [ -z "$name" ] && name="split_$target"
 
-    dims=( $(getOutputDims "$target") )
-    if [[ ! "$dims" ]];then
-        echo "could not get output dimensions; aborting"
-        exit 1
+    if [ "$1" = 'H' ] || [ "$1" = 'W' ];then
+        replace=1
+    else
+        replace=0
     fi
-    [[ "$1" == 'H' || "$1" == 'W' ]] && replace=1 || replace=0
-    [ "$1" == 'H' ] && index=1 || index=0
+    [ "$1" = 'H' ] && index=1 || index=0
     [ -z "$2" ] && num=2 || num=$2
 
+    getOutputDims "$target" | {
+        read -r x y w h mx my
 
-    S=${dims[index+2]}
+        check "$x" "could not get output dimensions; aborting"
 
-    if [ -z "$3" ]; then
-        dims[index+2]=$((dims[index+2]/$num))
-    else
-        dims[index+2]=$((dims[index+2]*$3/100))
-    fi
-    step=$(((S-dims[index+2]*num)/(num-1)+dims[index+2]))
-    for ((i=0; i < num ; i++)); do
-        [[ "$i" -eq 0 && "$replace" -eq 1 ]] && monitorTarget=$target || monitorTarget="none"
-        createMonitor "$name-$i" ${dims[*]} $monitorTarget
-        dims[$index]=$((${dims[index]}+step))
-    done
+        [ "$index" -eq 0 ] && dim=w || dim=h
+
+        eval "S=\$$dim";
+        if [ -z "$3" ]; then
+            # shellcheck disable=SC2004
+            eval "$dim=$(($dim/num))"
+        else
+            # shellcheck disable=SC2004
+            eval "$dim=$(($dim*$3/100))"
+        fi
+        # shellcheck disable=SC2004
+        step=$(((S-$dim*num)/(num-1)+$dim))
+        for i in $(seq 0 $((num-1))); do
+            [ "$i" -eq 0 ] && [ "$replace" -eq 1 ] && monitorTarget=$target || monitorTarget="none"
+            createMonitor "$name-$i" "$x" "$y" "$w" "$h" "$mx" "$my" "$monitorTarget"
+            [ "$index" -eq 0 ] && x=$((x+step)) || y=$((y+step))
+        done
+    }
 }
 
-outputs="$(echo $(xrandr -q|grep ' connected' |cut -d ' ' -f 1))"
+outputs="$(xrandr -q|grep ' connected' |cut -d ' ' -f 1)"
 relativePos=""
 target=
 name=
 interactive=
 dmenu="dmenu"
 dryrun=""
-commands=""
 while true; do
     case "$1" in
         --dmenu)
@@ -359,10 +369,11 @@ while true; do
             shift
             ;;
         --auto|-a)
-            [ -z "$refPoint" ] && refpoint="$(getArbitaryOutput)"
+            [ -z "$refpoint" ] && refpoint="$(getArbitaryOutput)"
             [ -z "$target" ] && target="$(getArbitaryOutput)"
             dmenu="head -n1"
-            ;&
+            interactive=1
+            ;;
         --interactive|-i)
             interactive=1
             ;;
@@ -397,18 +408,14 @@ while true; do
     esac
     shift
 done
-if [[ -z "$1" ]]; then
+if [ -z "$1" ]; then
     action="configureOutputs"
 else
     case "$1" in
         add-monitor)
             action="addMonitor"
             case "$2" in
-                --above);&
-                --below);&
-                --inside-of);&
-                --right-of);&
-                --left-of)
+                --above|--below|--inside-of|--right-of|--left-of)
                     relativePos="$2"
                     if [ -z "$target" ]; then
                        target="$3";
@@ -448,10 +455,7 @@ else
         split-monitor)
             action="splitMonitor"
             ;;
-        get-right-most);&
-        get-left-most);&
-        get-top-most);&
-        get-bottom-most)
+        get-right-most|get-left-most|get-top-most|get-bottom-most)
             action="getEdgeMonitor $1";
             ;;
         *)
@@ -460,9 +464,9 @@ else
             exit 1
     esac;
 fi
-if [[ -z "$action" ]];then
+if [ -z "$action" ];then
     action="configureOutputs"
 else
     shift
 fi
-$action $@
+$action "$@"
