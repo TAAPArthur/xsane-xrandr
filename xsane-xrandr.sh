@@ -27,6 +27,7 @@
 #%      configure  outputs...       A list of outputs in left to right order
 #%      dup                         Mirrors the display of target across all monitors
 #%      get-monitor-dims            Gets the space separated list of monitor dims
+#%      get-rotation                Returns the rotation status of the given output
 #%      list                        list all possible outputs
 #%      pip DIMS                    alias for add-monitor --inside-of . The target flag needs to be set
 #%      rotate [C|CC]               Rotate target either clockwise or counter clockwise. If no argument is specified, the current rotation is printed
@@ -437,6 +438,9 @@ else
         get-monitor-dims)
             checkTarget
             action="getMonitorDims $target"
+            ;;
+        get-rotation)
+            action="getRotation"
             ;;
         list)
             action="getListOfOutputs"

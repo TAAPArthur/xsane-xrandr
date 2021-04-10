@@ -118,7 +118,7 @@ getMost(){
     clearAll
 }
 getRotation() {
-    xrandr --verbose|grep -Po "$target.*\K(normal|right|left|inverted) .*\(" | cut -d" " -f1
+    $cmd -a get-rotation
 }
 rotateMonitor() {
     action="rotate"
