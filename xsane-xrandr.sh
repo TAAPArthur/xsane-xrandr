@@ -308,6 +308,25 @@ rotate(){
     xrandr $dryrun --output "$target" --rotate "$newRotation"
 
 }
+rotateTouchscreens() {
+    rotation=$(getRotation)
+
+    case "$rotation" in
+       normal)
+         matrix="1 0 0 0 1 0 0 0 1"
+         ;;
+       inverted)
+         matrix="-1 0 1 0 -1 1 0 0 1"
+         ;;
+       left)
+         matrix="0 -1 1 1 0 0 0 0 1"
+         ;;
+       right)
+         matrix="0 1 0 -1 0 1 0 0 1"
+         ;;
+    esac
+    xinput --list --name-only | grep -i TouchScreen |  xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix
+}
 splitMonitor(){
     if [ "$interactive" ]; then
         result=$(getListOfOutputs | xargs -I{} echo -e "{} W\n {} H" |$dmenu)
@@ -452,6 +471,9 @@ else
             ;;
         rotate)
             action="rotate"
+            ;;
+        rotate-touchscreen)
+            action="rotateTouchscreens"
             ;;
         set-primary)
             action="setPrimary"
