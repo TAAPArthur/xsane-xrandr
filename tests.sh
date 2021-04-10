@@ -151,8 +151,14 @@ rotateMonitor() {
     [ normal == $(getRotation) ]
 }
 
+TEST=$1
 test(){
-    echo Testing $1
+    if [ -z "$TEST" ] || [ "$TEST" = "$1" ]; then
+        echo Testing $1
+    else
+        echo Skipping $1
+        return
+    fi
     $1
 }
 
