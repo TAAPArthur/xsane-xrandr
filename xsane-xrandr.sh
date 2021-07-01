@@ -30,7 +30,9 @@
 #%      get-rotation                Returns the rotation status of the given output
 #%      list                        list all possible outputs
 #%      pip DIMS                    alias for add-monitor --inside-of . The target flag needs to be set
-#%      rotate [C|CC]               Rotate target either clockwise or counter clockwise. If no argument is specified, the current rotation is printed
+#%      rotate                      Wrapper around rotate-monitor and rotate-touchscreen
+#%      rotate-monitor [C|CC]       Rotate target either clockwise or counter clockwise. If no argument is specified, the current rotation is printed. Absolute axis like left, right, inverted, normal are valid if they are supported by the monitor
+#%      rotate-touchscreen          Rotate touch device axis to match monitor. If there are no touch devices, this is a no-op
 #%      set-primary                 sets output to be the primary monitor
 #%      split-monitor [W|H] [, num [,slice-dims] ]  The first argument dictates the dimension to split on. Upper case means to replace the existing monitor. Num is the number of resulting pieces (default 2). Slice-dims set the percent of the total width/height each slice gets (Default is they all get equal slices)
 #%
@@ -297,7 +299,7 @@ getTransformRotation(){
             ;;
     esac
 }
-rotate(){
+rotateMonitor(){
     rotation=$(getRotation)
 
     if [ -z "$1" ]; then
@@ -327,6 +329,10 @@ rotateTouchscreens() {
     esac
     xinput --list --id-only | xargs -I{} sh -c "printf '{} '; xinput --list --name-only {}" | grep -i touch | awk '{print $1}' |
         xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix
+}
+rotateAll() {
+    rotateMonitor "$@"
+    rotateTouchscreens
 }
 splitMonitor(){
     if [ "$interactive" ]; then
@@ -471,7 +477,10 @@ else
             action="addMonitor"
             ;;
         rotate)
-            action="rotate"
+            action="rotateAll"
+            ;;
+        rotate-monitor)
+            action="rotateMonitor"
             ;;
         rotate-touchscreen)
             action="rotateTouchscreens"
