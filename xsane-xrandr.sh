@@ -328,7 +328,7 @@ rotateTouchscreens() {
          ;;
     esac
     xinput --list --id-only | xargs -I{} sh -c "printf '{} '; xinput --list --name-only {}" | grep -i touch | awk '{print $1}' |
-        xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix
+        xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix 2>/dev/null || true
 }
 rotateAll() {
     rotateMonitor "$@"
