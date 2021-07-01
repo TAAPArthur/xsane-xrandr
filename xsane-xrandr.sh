@@ -325,7 +325,8 @@ rotateTouchscreens() {
          matrix="0 1 0 -1 0 1 0 0 1"
          ;;
     esac
-    xinput --list --name-only | grep -i TouchScreen |  xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix
+    xinput --list --id-only | xargs -I{} sh -c "printf '{} '; xinput --list --name-only {}" | grep -i touch | awk '{print $1}' |
+        xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix
 }
 splitMonitor(){
     if [ "$interactive" ]; then
