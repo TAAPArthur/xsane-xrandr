@@ -116,7 +116,7 @@ setPrimary(){
     xrandr --output "$target" --primary
 }
 clearFakeMonitors(){
-    xrandr --listmonitors | sed -E -n "s/^\s+\w: ([^ *+]+).*/\1/p" |xargs -I {} xrandr $dryrun --delmonitor {}
+    xrandr --listmonitors | sed -E -n "s/^\s+\w: ([^ *+]+).*/\1/p" |xargs -n1 xrandr $dryrun --delmonitor
 }
 clearAllFakeMonitors(){
     clearFakeMonitors
@@ -327,8 +327,8 @@ rotateTouchscreens() {
          matrix="0 1 0 -1 0 1 0 0 1"
          ;;
     esac
-    xinput --list --id-only | xargs -I{} sh -c "printf '{} '; xinput --list --name-only {}" | grep -i touch | awk '{print $1}' |
-        xargs -I{} xinput set-prop {} "Coordinate Transformation Matrix" $matrix 2>/dev/null || true
+    # list ids -> id, name tuple -> filer for touch devices -> extra just the id -> perform transformation
+    xinput --list --id-only | while read -r id; do printf "%s %s\n" "$id" "$(xinput --list --name-only "$id")"; done | grep -i touch | cut -d" " -f 1 | while read -r id; do xinput set-prop "$id" "Coordinate Transformation Matrix" $matrix 2>/dev/null; done  || true
 }
 rotateAll() {
     rotateMonitor "$@"
@@ -336,7 +336,7 @@ rotateAll() {
 }
 splitMonitor(){
     if [ "$interactive" ]; then
-        result=$(getListOfOutputs | xargs -I{} echo -e "{} W\n {} H" |$dmenu)
+        result=$(getListOfOutputs | while read -r _name; do echo "$_name W"; echo "$_name H"; done |$dmenu)
     else
         # format: output, H or W, [, num [, slice-dim]
         result=$*
