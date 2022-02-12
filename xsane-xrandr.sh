@@ -255,7 +255,7 @@ addMonitor(){
         read -r x y w h
         getRelativeDims "$x" "$y" "$w" "$h" | {
             read -r x y w h
-            createMonitor "${name:-fake_monitor_$(echo "$1$relativePos$(uuidgen)" |sed "s/-//g")}" "$x" "$y" "$w" "$h" 1 1
+            createMonitor "${name:-fake_monitor_$(echo "$1$relativePos$$" |sed "s/-//g")}" "$x" "$y" "$w" "$h" 1 1
         }
     }
 }
