@@ -30,6 +30,7 @@
 #%      get-rotation                Returns the rotation status of the given output
 #%      list                        list all possible outputs
 #%      pip DIMS                    alias for add-monitor --inside-of . The target flag needs to be set
+#%      resolution
 #%      rotate                      Wrapper around rotate-monitor and rotate-touchscreen
 #%      rotate-monitor [C|CC]       Rotate target either clockwise or counter clockwise. If no argument is specified, the current rotation is printed. Absolute axis like left, right, inverted, normal are valid if they are supported by the monitor
 #%      rotate-touchscreen          Rotate touch device axis to match monitor. If there are no touch devices, this is a no-op
@@ -201,6 +202,30 @@ configureOutputs(){
     fi
     applyOutputConfiguration $result
 }
+
+getResolutionsForMonitor() {
+    xrandr | sed "1,/$1/ d" | sed '/connected/,$d'
+}
+
+resolution(){
+    if [ "$interactive" -eq 1 ]; then
+        target=$(getListOfOutputs|$dmenu)
+    fi
+    checkTarget
+
+    res="$(
+    getResolutionsForMonitor "$target" | {
+    if [ "$1" = up ]; then
+         grep -F -B1 '*' | head -n1
+    elif [ "$1" = down ]; then
+        grep -F -A1 "*" | tail -n1
+    else
+         $dmenu
+    fi
+    } | awk '{print $1}')"
+    xrandr --output "$target" --mode "$res"
+}
+
 dup(){
     if [ "$interactive" -eq 1 ]; then
         target=$(getListOfOutputs |$dmenu)
@@ -485,6 +510,9 @@ else
             checkTarget
             relativePos="--inside-of"
             action="addMonitor"
+            ;;
+        res*)
+            action="resolution"
             ;;
         rotate)
             action="rotateAll"
