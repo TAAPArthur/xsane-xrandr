@@ -137,14 +137,24 @@ turnOffOtherOutputs(){
 
 ################################## configure function and helpers
 getOutputConfigurations(){
-    cat << EOF |python
-import itertools
-outputs="$outputs".split()
-nonMirror=itertools.chain.from_iterable(itertools.permutations(outputs,x) for x in range(1,len(outputs)+1))
-options=itertools.chain(nonMirror,map(lambda x:("--mirror: "+x,),outputs),map(lambda x:("--scaled-mirror: "+x,),outputs))
-for option in options:
-    print(" ".join(option))
-EOF
+    for output1; do
+        echo "$output1"
+        for output2; do
+            [ "$output1" = "$output2" ] && continue
+            echo "$output1 $output2"
+            for output3; do
+                { [ "$output1" = "$output3" ] || [ "$output2" = "$output3" ]; } && continue
+                echo "$output1 $output2 $output3"
+            done
+        done
+    done
+
+    for output1; do
+        echo "--mirror: $output1"
+    done
+    for output1; do
+        echo "--scaled-mirror: $output1"
+    done
 }
 mirror(){
     command="xrandr $dryrun --output $1"
@@ -185,7 +195,7 @@ applyOutputConfiguration(){
 }
 configureOutputs(){
     if [ "$interactive" -eq 1 ]; then
-        result=$(getOutputConfigurations|$dmenu)
+        result=$(getOutputConfigurations $outputs|$dmenu)
     else
         result=$*
     fi
