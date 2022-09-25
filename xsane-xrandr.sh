@@ -215,13 +215,14 @@ resolution(){
 
     res="$(
     getResolutionsForMonitor "$target" | {
-    if [ "$1" = up ]; then
-         grep -F -B1 '*' | head -n1
-    elif [ "$1" = down ]; then
-        grep -F -A1 "*" | tail -n1
-    else
-         $dmenu
-    fi
+        delta=${2:-1}
+        if [ "$1" = up ]; then
+             grep -F -B${delta} '*' | head -n1
+        elif [ "$1" = down ]; then
+            grep -F -A${delta} "*" | tail -n1
+        else
+             $dmenu
+        fi
     } | awk '{print $1}')"
     xrandr --output "$target" --mode "$res"
 }
