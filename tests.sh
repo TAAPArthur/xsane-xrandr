@@ -46,6 +46,8 @@ configure(){
     outputs="A B C"
     [ "$( ($cmd --outputs "$outputs" -i --dmenu "$dmenu" $action ) 2>&1 | wc -l)" -eq 21 ]
     $cmd --dryrun --outputs "$outputs" --debug $action A B 2>&1 |grep -q -- "--output B --right-of A"
+    $cmd -a $action --mirror  >/dev/null
+    $cmd -a $action --scale-mirror  >/dev/null
     clearAll
 }
 dup(){

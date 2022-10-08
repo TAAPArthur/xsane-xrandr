@@ -82,7 +82,9 @@ getListOfOutputs(){
 }
 
 set_target() {
-    if [ -z "$TARGET" ]; then
+    if [ -n "$1" ]; then
+        TARGET="$1"
+    elif [ -z "$TARGET" ]; then
         TARGET=$(getListOfOutputs|$DMENU)
     fi
 }
@@ -159,27 +161,29 @@ getOutputConfigurations(){
 }
 
 applyOutputConfiguration(){
-    mirror=0
-    if [ "$1" = --scaled-mirror ]; then
-        res=$(xrandr -q| sed -n "s/^$2.* connected \?\w* \([0-9]\+x[0-9]\+\).*$/\1/p")
-        check "$res" "Could not get resolution of $2"
-        mirror "$2" " --scale-from $res "
-        return 0
-    elif [ "$1" = --mirror ]; then
-        mirror "$2" ""
-        return 0
+    mirror_cmd=
+    if [ "$1" = --scaled-mirror ] || [ "$1" = --mirror ]; then
+        set_target "$2"
+        if [ "$1" = --scaled-mirror ]; then
+            res=$(xrandr -q| sed -n "s/^$TARGET.* connected \?\w* \([0-9]\+x[0-9]\+\).*$/\1/p")
+            check "$res" "Could not get resolution of $TARGET"
+            mirror_cmd=" --scale-from $res "
+        elif [ "$1" = --mirror ]; then
+            mirror_cmd=" --same-as $TARGET "
+        fi
+        # shellcheck disable=SC2046
+        set -- $(getListOfOutputs)
     else
         turnOffOtherOutputs "$*"
     fi
     cmd="xrandr $DRYRUN "
 
     pos=""
-    for out in "$@"
-    do
-        if [ $mirror -eq 1 ];then
-            cmd="$cmd --output $out --same-as $1"
+    for out; do
+        if [ -n "$mirror_cmd" ];then
+            [ "$out" = "$TARGET" ] || cmd="$cmd --output $out $mirror_cmd"
         else
-            cmd="$cmd --output $out $pos --auto"
+            cmd="$cmd --output $out $pos"
             pos="--right-of $out"
         fi
     done
