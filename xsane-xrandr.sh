@@ -90,7 +90,7 @@ set_target() {
 }
 
 getOutputDims(){
-    xrandr -q|grep  "$1 connected .* " | sed -E -n "s/.* ([0-9]+)+x([0-9]+)\+([0-9]+)\+([0-9]+) (\([^\)]*\))? ?([0-9]+)mm x ([0-9]+)mm$/\3 \4 \1 \2 \6 \7 /p"
+    xrandr -q|grep  "^$1 connected .* " | sed -E -n "s/.* ([0-9]+)+x([0-9]+)\+([0-9]+)\+([0-9]+) (\([^\)]*\))? ?([0-9]+)mm x ([0-9]+)mm$/\3 \4 \1 \2 \6 \7 /p"
 }
 getMonitorDims(){
     if [ -z "$TARGET" ]; then
@@ -132,31 +132,47 @@ clearFakeMonitors(){
 turnOffOtherOutputs(){
     file=$(mktemp)
     trap 'rm "$file"' EXIT
-    getListOfOutputs | sort > "$file"
-    echo "$1" | sort | comm -23  "$file" - | {
+    for out; do
+        echo "$out"
+    done | sort > "$file"
+    getListOfOutputs | sort | comm -23  - "$file" | {
         cmd="xrandr $DRYRUN "
         while read -r output; do
-            cmd="$cmd --output $output --off"
+            $cmd --output $output --off
         done
-        $cmd
     }
-
 }
 
 ################################## configure function and helpers
+
+contains() {
+    # Check if a "string list" contains a word.
+    case " $1 " in *" $2 "*|*" $2"|"$2 "*) return 0; esac; return 1
+}
+
 getOutputConfigurations(){
-    getListOfOutputs | while read -r output1; do
-        echo "$output1"
-        getListOfOutputs | while read -r output2; do
-            [ "$output1" = "$output2" ] && continue
-            echo "$output1 $output2"
-            getListOfOutputs | while read -r output3; do
-                { [ "$output1" = "$output3" ] || [ "$output2" = "$output3" ]; } && continue
-                echo "$output1 $output2 $output3"
-            done
-        done
-        echo "--mirror: $output1"
-        echo "--scaled-mirror: $output1"
+    if [ "$#" -eq 0 ]; then
+        # shellcheck disable=SC2046
+        set -- "" $(getListOfOutputs)
+    else
+        temp=$1
+        shift 2
+        set -- "$temp" "$@"
+    fi
+
+    first=0
+    for output ; do
+        if [ "$first" -eq 0 ]; then
+            first=1
+            continue
+        fi
+        ! contains "$1" "$output" || continue
+        echo "$1$output"
+        if [ "$1" = "" ]; then
+            echo "--mirror: $output"
+            echo "--scaled-mirror: $output"
+        fi
+        getOutputConfigurations "$1$output " "$@"
     done
 }
 
@@ -174,7 +190,7 @@ applyOutputConfiguration(){
         # shellcheck disable=SC2046
         set -- $(getListOfOutputs)
     else
-        turnOffOtherOutputs "$*"
+        (turnOffOtherOutputs "$@")
     fi
     cmd="xrandr $DRYRUN "
 
@@ -183,17 +199,30 @@ applyOutputConfiguration(){
         if [ -n "$mirror_cmd" ];then
             [ "$out" = "$TARGET" ] || cmd="$cmd --output $out $mirror_cmd"
         else
-            cmd="$cmd --output $out $pos"
+            mode="$(getOutputDims "$out" | {
+                if read -r x y w h mx my; then
+                    echo "--mode ${w}x${h}"
+                else
+                    echo --auto
+                fi
+                })"
+            cmd="$cmd --output $out $pos $mode"
             pos="--right-of $out"
         fi
     done
+    echo $cmd
     $cmd
 }
 
 configureOutputs(){
     if [ "$#" -eq 0 ]; then
         # shellcheck disable=SC2046
-        config=$(getOutputConfigurations |$DMENU)
+        if [ -n "$NUM" ]; then
+            [ "${NUM%+}" = "$NUM" ] && range= || range=,
+            config=$(getOutputConfigurations | grep -E "^([A-z0-9-]+( |\$)){${NUM%+}$range}\$" | $DMENU)
+        else
+            config=$(getOutputConfigurations | $DMENU)
+        fi
         set -- $config
     fi
     applyOutputConfiguration "$@"
@@ -444,6 +473,10 @@ while true; do
             ;;
        --name)
             NAME=$2
+            shift
+            ;;
+       --num)
+            NUM=$2
             shift
             ;;
        --debug)
